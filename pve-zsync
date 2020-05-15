@@ -636,7 +636,11 @@ sub sync {
 
 	    ($source->{old_snap}, $source->{last_snap}) = snapshot_get($source, $dest, $param->{maxsnap}, $param->{name}, $param->{source_user});
 
+	    fsfreeze_freeze($source);
+	    
 	    snapshot_add($source, $dest, $param->{name}, $date, $param->{source_user}, $param->{dest_user});
+	    
+	    fsfreeze_thaw($source);
 
 	    send_image($source, $dest, $param);
 
@@ -746,6 +750,32 @@ sub snapshot_add {
 	snapshot_destroy($source, $dest, 'ssh', $snap_name, $source_user, $dest_user);
 	die "$err\n";
     }
+}
+
+sub fsfreeze_freeze {
+    my ($source) = @_;
+    my $cmd;
+    my $status;
+    $cmd = "qm guest cmd "."$source->{vmid} "."fsfreeze-freeze";
+    $status = "qm guest cmd "."$source->{vmid} "."fsfreeze-status";
+
+    eval{
+	run_cmd($cmd);
+	print "virtual machine fs status: ".run_cmd($status)."\n";
+    };
+}
+
+sub fsfreeze_thaw {
+    my ($source) = @_;
+    my $cmd;
+    my $status;
+    $cmd = "qm guest cmd "."$source->{vmid} "."fsfreeze-thaw";
+    $status = "qm guest cmd "."$source->{vmid} "."fsfreeze-status";
+
+    eval{
+	run_cmd($cmd);
+	print "virtual machine fs status: ".run_cmd($status)."\n";
+    };
 }
 
 sub write_cron {
